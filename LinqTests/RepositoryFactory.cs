@@ -4,6 +4,14 @@ namespace LinqTests
 {
     internal class RepositoryFactory
     {
+        public static IEnumerable<string> GetUrls()
+        {
+            yield return "http://tw.yahoo.com";
+            yield return "https://facebook.com";
+            yield return "https://twitter.com";
+            yield return "http://github.com";
+        }
+
         public static IEnumerable<Product> GetProducts()
         {
             return new List<Product>
