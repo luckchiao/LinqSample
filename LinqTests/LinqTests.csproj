@@ -67,7 +67,7 @@
     <Compile Include="Product.cs" />
     <Compile Include="RepositoryFactory.cs" />
     <Compile Include="RoleType.cs" />
-    <Compile Include="UnitTest1.cs" />
+    <Compile Include="LinqTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
