@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections;
 using ExpectedObjects;
 using LinqTests;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Linq;
 using NSubstitute.Routing.Handlers;
 
@@ -11,6 +13,8 @@ namespace LinqTests
     [TestClass]
     public class LinqTest
     {
+        
+
         [TestMethod]
         public void find_products_that_price_between_200_and_500()
         {
@@ -75,15 +79,15 @@ namespace LinqTests
             var urls = RepositoryFactory.GetUrls();
             var actual = urls.MySelect(url =>
             {
-                var s = url.Replace("http", "https");
+                var s = url.Replace("http://", "https://");
                 return s;
             });
             var expected = new string[]
             {
-                "https://tw.yahoo.com:80",
-                "https://facebook.com:80",
-                "https://twitter.com:80",
-                "https://github.com:80"
+                "https://tw.yahoo.com",
+                "https://facebook.com",
+                "https://twitter.com",
+                "https://github.com"
             };
             expected.ToExpectedObject().ShouldEqual(actual.ToArray());
         }
@@ -356,201 +360,175 @@ namespace LinqTests
             };
             expect.ToExpectedObject().ShouldEqual(act.ToArray());
         }
+
+        [TestMethod]
+         public void find_employee_engineer_age_older_then_45_test()
+        {
+            var employees = RepositoryFactory.GetEmployees();
+            var act = employees.ChloeAny(employee => employee.Age > 45 && employee.Role == RoleType.Engineer);
+            
+            Assert.IsFalse(act);
+        }
+
+        [TestMethod]
+        public void find_is_all_colorball_price_more_then_180_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            var act = colorBalls.ChloeAll(ball => ball.Prize > 180);
+            Assert.IsTrue(act);
+        }
+
+        [TestMethod]
+        public void find_first_employee_age_smaller__then_30_test()
+        {
+            var employees = RepositoryFactory.GetEmployees();
+            var act = employees.ChloeFirst(employee => employee.Age < 30);
+            var expect = new Employee
+            {
+                Name = "Andy",
+                Role = RoleType.OP,
+                MonthSalary = 80,
+                Age = 22,
+                WorkingYear = 2.6
+            };
+            expect.ToExpectedObject().ShouldEqual(act);
+        }
+
+        [TestMethod]
+        public void find_first_null_test()
+        {
+            var employees = RepositoryFactory.GetEmployees();
+            var act = employees.ChloeFirst(employee => employee.Age > 60);
+            Assert.IsNull(act);
+        }
+
+        [TestMethod]
+        public void find_first_if_null_return_default_test()
+        {
+            var employees = RepositoryFactory.GetEmployees();
+            var act = employees.ChloeFirst2(employee => employee.Age > 60, new Employee{Name = "Eviler"});
+            Assert.AreEqual(act.Name, "Eviler");
+        }
+
+        [TestMethod]
+        public void is_single_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            var act = colorBalls.IsSingle(ball => ball.Size == "M");
+            var expect = new ColorBall {Color = Color.Yellow, Size = "M", Prize = 500};
+            expect.ToExpectedObject().ShouldEqual(act);
+        }
+
+        [TestMethod]
+        public void is_single_empty_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            Assert.ThrowsException<InvalidOperationException>(() => colorBalls.IsSingle(ball => ball.Size == ""));
+        }
+
+        [TestMethod]
+        public void is_over_single_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            Assert.ThrowsException<InvalidOperationException>(() => colorBalls.IsSingle(ball => ball.Size == "L"));
+        }
+
+        [TestMethod]
+        public void find_last_size_is_s_ball_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            var actul = colorBalls.ChloeLast(current => current.Size == "S");
+            var expect = new ColorBall { Color = Color.Purple, Size = "S", Prize = 500 };
+            expect.ToExpectedObject().ShouldEqual(actul);
+        }
+
+        [TestMethod]
+        public void contains_special_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            var colorBall = new ColorBall {Color = Color.Green, Prize = 500};
+            var actul = YourOwnLinq.IsSameBall(colorBalls, colorBall, new ChloeBallCompare());
+            Assert.IsFalse(actul);
+        }
+
+        [TestMethod]
+        public void contains_special_ball_purple_test()
+        {
+            var colorBalls = RepositoryFactory.GetBalls();
+            var colorBall = new ColorBall { Color = Color.Purple, Prize = 500 };
+            var actul = YourOwnLinq.IsSameBall(colorBalls, colorBall, new ChloeBallCompare());
+            Assert.IsTrue(actul);
+        }
+
+        [TestMethod]
+        public void two_employee_not_equal_length_test()
+        {
+            var firstEmployees = new List<Employee>
+            {
+                new Employee {Name = "Joe", Role = RoleType.Engineer, MonthSalary = 100, Age = 44, WorkingYear = 2.6},
+                new Employee {Name = "Kevin", Role = RoleType.Manager, MonthSalary = 380, Age = 55, WorkingYear = 2.6},
+                new Employee {Name = "Joey", Role = RoleType.Engineer, MonthSalary = 250, Age = 40, WorkingYear = 2.6},
+            };
+            var secondEmployee = RepositoryFactory.GetEmployees();
+            Assert.IsFalse(YourOwnLinq.IsSameEmployee(firstEmployees, secondEmployee, new ChloeEmployeeCompare()));
+        }
+
+        [TestMethod]
+        public void two_employee_not_equal_test()
+        {
+            var firstEmployees = new List<Employee>
+            {
+                new Employee {Name = "Joe", Role = RoleType.Engineer, MonthSalary = 100, Age = 44, WorkingYear = 2.6},
+                new Employee {Name = "Kevin", Role = RoleType.Manager, MonthSalary = 380, Age = 55, WorkingYear = 2.6},
+                new Employee {Name = "Joey", Role = RoleType.Engineer, MonthSalary = 250, Age = 40, WorkingYear = 2.6},
+            };
+            var secondEmployee = RepositoryFactory.GetEmployees();
+            Assert.IsFalse(YourOwnLinq.IsSameEmployee(firstEmployees, secondEmployee, new ChloeEmployeeCompare()));
+        }
+
+        [TestMethod]
+        public void two_employee_are_equal_test()
+        {
+            var firstEmployees = new List<Employee>
+            {
+                new Employee {Name = "Joe", Role = RoleType.Engineer, MonthSalary = 100, Age = 44, WorkingYear = 2.6},
+                new Employee {Name = "Tom", Role = RoleType.Engineer, MonthSalary = 140, Age = 33, WorkingYear = 2.6},
+                new Employee {Name = "Kevin", Role = RoleType.Manager, MonthSalary = 380, Age = 55, WorkingYear = 2.6},
+                new Employee {Name = "Andy", Role = RoleType.OP, MonthSalary = 80, Age = 22, WorkingYear = 2.6},
+                new Employee {Name = "Bas", Role = RoleType.Engineer, MonthSalary = 280, Age = 36, WorkingYear = 2.6},
+                new Employee {Name = "Mary", Role = RoleType.OP, MonthSalary = 180, Age = 26, WorkingYear = 2.6},
+                new Employee {Name = "Frank", Role = RoleType.Engineer, MonthSalary = 120, Age = 16, WorkingYear = 2.6},
+                new Employee {Name = "Joey", Role = RoleType.Engineer, MonthSalary = 250, Age = 40, WorkingYear = 2.6},
+            };
+            var secondEmployee = RepositoryFactory.GetEmployees();
+            Assert.IsTrue(YourOwnLinq.IsSameEmployee(firstEmployees, secondEmployee, new ChloeEmployeeCompare()));
+        }
     }
 }
 
-public static class YourOwnLinq
+internal class ChloeEmployeeCompare : IEqualityComparer<Employee>
 {
-    public static IEnumerable<string> Add91Port(IEnumerable<string> urlsList)
+    public bool Equals(Employee x, Employee y)
     {
-        foreach (var url in urlsList)
-        {
-            if (url.Contains("tw"))
-                yield return url + ":91";
-            else yield return url;
-        }
+        return x.Name == y.Name && x.Age == y.Age;
     }
 
-    public static IEnumerable<TResult> MySelect2<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, TResult> selector)
+    public int GetHashCode(Employee obj)
     {
-        var enumerator = source.GetEnumerator();
-        while (enumerator.MoveNext())
-        {
-            yield return selector(enumerator.Current);
-        }
+        return obj.Name.GetHashCode() & obj.Age.GetHashCode();
+    }
+}
+
+internal class ChloeBallCompare : IEqualityComparer<ColorBall>
+{
+    public bool Equals(ColorBall x, ColorBall y)
+    {
+        return x.Color == y.Color && x.Prize == y.Prize;
     }
 
-
-    public static IEnumerable<TSource> MyDistinct<TSource>(this IEnumerable<TSource> source)
+    public int GetHashCode(ColorBall obj)
     {
-        var r = source.GetEnumerator();
-        var hashSet = new HashSet<TSource>();
-        while (r.MoveNext())
-        {
-            var canAdd = hashSet.Add(r.Current);
-            if (canAdd)
-                yield return r.Current;
-        }
-    }
-
-    public static bool MyAll<T>(this IEnumerable<T> source, Predicate<T> func)
-    {
-        //other 
-        //var r = source.GetEnumerator();
-        //while (r.MoveNext())
-        //{
-        //    if (!func(r.Current))
-        //        return false;
-        //}
-
-        foreach (var item in source)
-        {
-            if (func(item))
-                return false;
-        }
-
-        return true;
-    }
-
-    public static bool Myany<T>(this IEnumerable<T> source)
-    {
-        return source.GetEnumerator().MoveNext();
-    }
-
-    public static IEnumerable<int> MySumGroup<T>(this IEnumerable<T> source, int pageSize, Func<T, int> selectorFunc)
-    {
-        var rowIndex = 0;
-        while (rowIndex <= source.Count())
-        {
-            yield return source.Skip(rowIndex).Take(pageSize).Sum(selectorFunc);
-            rowIndex += pageSize;
-        }
-    }
-
-    public static int MySum<T>(this IEnumerable<T> source, Func<T, int> func)
-    {
-        var result = 0;
-        foreach (var price in source)
-        {
-            result += func(price);
-        }
-
-        return result;
-    }
-
-    public static IEnumerable<T> MyWhere<T>(this IEnumerable<T> source, Func<T, bool> func)
-    {
-        foreach (var p in source)
-        {
-            if (func(p))
-            {
-                yield return p;
-            }
-        }
-    }
-
-    public static IEnumerable<TResult> MySelect<TSource, TResult>(this IEnumerable<TSource> source,
-        Func<TSource, TResult> func)
-    {
-        foreach (var p in source)
-        {
-            yield return func(p);
-        }
-    }
-
-    public static IEnumerable<TResult> MySelect<TSource, TResult>(this IEnumerable<TSource> source,
-        Func<TSource, int, TResult> func)
-    {
-        var index = 1;
-        foreach (var p in source)
-        {
-            yield return func(p, index++);
-        }
-    }
-
-    public static IEnumerable<string> Append91Port(IEnumerable<string> urlsList)
-    {
-        foreach (var url in urlsList)
-        {
-            if (url.IndexOf("tw") >= 0)
-                yield return url + ":91";
-            else yield return url;
-        }
-    }
-
-    public static IEnumerable<T> MyTake<T>(this IEnumerable<T> source, int take)
-    {
-        var i = source.GetEnumerator();
-        while (i.MoveNext())
-        {
-            if (take-- <= 0)
-                yield break; //important
-            yield return i.Current;
-        }
-    }
-
-    public static IEnumerable<T> MySkip<T>(this IEnumerable<T> source, int skipCount)
-    {
-        var i = source.GetEnumerator();
-        //while (i.MoveNext())
-        //{
-        //    if (takeCount-- > 0)
-        //        continue;
-        //    yield return i.Current;
-        //}
-
-        var count = 1;
-        while (i.MoveNext())
-        {
-            if (count > skipCount)
-                yield return i.Current;
-            count++;
-        }
-    }
-
-    public static IEnumerable<T> mySelectSkip<T>(this IEnumerable<T> source, Func<T, bool> func, int skipCount)
-    {
-        var i = source.GetEnumerator();
-        while (i.MoveNext())
-        {
-            if (func(i.Current))
-            {
-                if (skipCount-- <= 0)
-                {
-                    yield return i.Current;
-                }
-            }
-            else
-            {
-                yield return i.Current;
-            }
-        }
-    }
-
-    public static IEnumerable<T> MyTakeWhile<T>(this IEnumerable<T> source, Func<T, bool> func, int takeCount)
-    {
-        var i = source.GetEnumerator();
-        var counter = 1;
-        while (i.MoveNext())
-        {
-            if (func(i.Current) && counter++ <= takeCount)
-                yield return i.Current;
-        }
-    }
-
-    public static IEnumerable<T> MyRealTakeWhile<T>(this IEnumerable<T> source, Func<T, bool> func)
-    {
-        var i = source.GetEnumerator();
-
-        var counter = 1;
-        while (i.MoveNext())
-        {
-            if (func(i.Current))
-                yield return i.Current;
-            else
-                yield break;
-            counter++;
-        }
+        return obj.Color.GetHashCode() & obj.Prize.GetHashCode();
     }
 }
 
